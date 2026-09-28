@@ -1,4 +1,4 @@
-// Recherche lancée à l'ouverture : réglage d'origine ou réglage enregistré sur l'appareil.
+// Recherche proposée à l'ouverture : réglage d'origine ou réglage enregistré sur l'appareil.
 
 import { describe, expect, test } from "vitest";
 import { DEFAULT_SEARCH } from "../src/config";

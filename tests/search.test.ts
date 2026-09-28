@@ -134,6 +134,9 @@ describe("searchAvailabilities", () => {
   /** Le 06/10 a des dispos, les autres jours sont ouverts mais complets. */
   const onlyOctober6 = (url: string) =>
     dateOf(url) === "2026-10-06" ? fixture("planning-2026-10-06.json") : EMPTY_DAY;
+  /** Recherche sur l'API simulée, par défaut la recherche d'origine lancée un lundi matin. */
+  const search = (api: ReturnType<typeof fakeApi>, params: SearchParams = DEFAULT_SEARCH, now = monday) =>
+    searchAvailabilities({ params, apiBaseUrl: API, fetchJson: api.fetchJson, now });
 
   test("une requête par jour, résultats triés, avancement signalé", async () => {
     const api = fakeApi(onlyOctober6);
@@ -162,8 +165,7 @@ describe("searchAvailabilities", () => {
   test("s'arrête au premier jour pas encore ouvert à la réservation", async () => {
     // Comme observé le 28/09 : ouvert jusqu'au 27/11, plus aucun terrain ensuite.
     const api = fakeApi((url) => (dateOf(url) <= "2026-11-27" ? fixture("planning-2026-10-06.json") : CLOSED_DAY));
-    const params: SearchParams = { ...DEFAULT_SEARCH, days: [2, 4, 6] }; // mardi, jeudi, samedi
-    const outcome = await searchAvailabilities({ params, apiBaseUrl: API, fetchJson: api.fetchJson, now: monday });
+    const outcome = await search(api, { ...DEFAULT_SEARCH, days: [2, 4, 6] }); // mardi, jeudi, samedi
 
     expect(outcome.lastOpenDate).toBe("2026-11-26");
     expect(outcome.bookingLimit).toBe("2026-11-28");
@@ -175,12 +177,11 @@ describe("searchAvailabilities", () => {
     const api = fakeApi((url) =>
       url.includes("/activities?") ? { "hydra:member": [{ id: CLUB.activityId, name: "Padel" }] } : CLOSED_DAY,
     );
-    const params: SearchParams = {
+    const outcome = await search(api, {
       ...DEFAULT_SEARCH,
       days: [6, 0],
       period: { kind: "custom", from: "2026-11-28", to: "2026-11-29" },
-    };
-    const outcome = await searchAvailabilities({ params, apiBaseUrl: API, fetchJson: api.fetchJson, now: monday });
+    });
 
     // Le premier jour vide déclenche la vérification de l'activité, puis la recherche s'arrête.
     expect(api.calls).toHaveLength(2);
@@ -191,8 +192,7 @@ describe("searchAvailabilities", () => {
 
   test("mode « la prochaine » : s'arrête au premier jour qui a une dispo", async () => {
     const api = fakeApi(onlyOctober6);
-    const params: SearchParams = { ...DEFAULT_SEARCH, mode: "first" };
-    const outcome = await searchAvailabilities({ params, apiBaseUrl: API, fetchJson: api.fetchJson, now: monday });
+    const outcome = await search(api, { ...DEFAULT_SEARCH, mode: "first" });
 
     expect(api.calls.map(dateOf)).toEqual(["2026-09-29", "2026-10-01", "2026-10-06"]);
     expect(outcome.results).toHaveLength(2); // 18h et 19h le même jour
@@ -200,13 +200,11 @@ describe("searchAvailabilities", () => {
 
   test("refuse une recherche invalide sans rien demander à l'API", async () => {
     const api = fakeApi(() => EMPTY_DAY);
-    const search = (params: SearchParams) =>
-      searchAvailabilities({ params, apiBaseUrl: API, fetchJson: api.fetchJson });
-    await expect(search({ ...DEFAULT_SEARCH, startHours: [23] })).rejects.toThrow(/heure de début/); // 23h + 2h > minuit
-    await expect(search({ ...DEFAULT_SEARCH, days: [] })).rejects.toThrow(/un jour/);
-    await expect(search({ ...DEFAULT_SEARCH, period: { kind: "custom", from: "2026-10-06", to: "" } })).rejects.toThrow(
-      /date de fin/,
-    );
+    await expect(search(api, { ...DEFAULT_SEARCH, startHours: [23] })).rejects.toThrow(/heure de début/); // 23h + 2h > minuit
+    await expect(search(api, { ...DEFAULT_SEARCH, days: [] })).rejects.toThrow(/un jour/);
+    await expect(
+      search(api, { ...DEFAULT_SEARCH, period: { kind: "custom", from: "2026-10-06", to: "" } }),
+    ).rejects.toThrow(/date de fin/);
     expect(api.calls).toEqual([]);
   });
 
@@ -229,9 +227,8 @@ describe("searchAvailabilities", () => {
       }
       return CLOSED_DAY; // ancien identifiant : plus aucun terrain
     });
-    const params: SearchParams = { ...DEFAULT_SEARCH, period: { kind: "week" } };
-    const now = new Date(2026, 9, 6, 8, 0); // mardi 06/10 à 8h
-    const outcome = await searchAvailabilities({ params, apiBaseUrl: API, fetchJson: api.fetchJson, now });
+    const tuesday = new Date(2026, 9, 6, 8, 0); // mardi 06/10 à 8h
+    const outcome = await search(api, { ...DEFAULT_SEARCH, period: { kind: "week" } }, tuesday);
 
     expect(outcome.activityId).toBe(NEW_ID);
     expect(outcome.warnings[0]).toMatch(/a changé/);
@@ -252,12 +249,7 @@ describe("searchAvailabilities", () => {
 
     test("retente une fois un jour qui ne répond pas", async () => {
       const api = flaky({ "2026-10-06": 1 });
-      const outcome = await searchAvailabilities({
-        params: DEFAULT_SEARCH,
-        apiBaseUrl: API,
-        fetchJson: api.fetchJson,
-        now: monday,
-      });
+      const outcome = await search(api);
 
       expect(api.calls.filter((url) => dateOf(url) === "2026-10-06")).toHaveLength(2);
       expect(outcome.results).toHaveLength(2);
@@ -266,12 +258,7 @@ describe("searchAvailabilities", () => {
 
     test("saute un jour qui échoue deux fois et garde le reste", async () => {
       const api = flaky({ "2026-10-01": 2 });
-      const outcome = await searchAvailabilities({
-        params: DEFAULT_SEARCH,
-        apiBaseUrl: API,
-        fetchJson: api.fetchJson,
-        now: monday,
-      });
+      const outcome = await search(api);
 
       expect(outcome.warnings).toEqual([
         "Le Jeu 1 oct. n'a pas pu être vérifié (Le site du club met trop de temps à répondre.)",
@@ -282,12 +269,7 @@ describe("searchAvailabilities", () => {
 
     test("s'interrompt après deux jours en échec d'affilée, en gardant les résultats trouvés", async () => {
       const api = flaky({ "2026-10-08": 2, "2026-10-13": 2 });
-      const outcome = await searchAvailabilities({
-        params: DEFAULT_SEARCH,
-        apiBaseUrl: API,
-        fetchJson: api.fetchJson,
-        now: monday,
-      });
+      const outcome = await search(api);
 
       expect(outcome.results.map((r) => r.date)).toEqual(["2026-10-06", "2026-10-06"]);
       expect(outcome.warnings.at(-1)).toMatch(/Recherche interrompue/);
@@ -298,18 +280,14 @@ describe("searchAvailabilities", () => {
       const unreachable = fakeApi(() => {
         throw new Error("HTTP 503");
       });
-      await expect(
-        searchAvailabilities({ params: DEFAULT_SEARCH, apiBaseUrl: API, fetchJson: unreachable.fetchJson }),
-      ).rejects.toThrow(/HTTP 503/);
+      await expect(search(unreachable)).rejects.toThrow(/HTTP 503/);
 
       // Même si la liste des activités répond : l'identifiant n'a pas changé, le problème est ailleurs.
       const planningsDown = fakeApi((url) => {
         if (url.includes("/activities?")) return { "hydra:member": [{ id: CLUB.activityId, name: "Padel" }] };
         throw new Error("HTTP 503");
       });
-      await expect(
-        searchAvailabilities({ params: DEFAULT_SEARCH, apiBaseUrl: API, fetchJson: planningsDown.fetchJson }),
-      ).rejects.toThrow(/HTTP 503/);
+      await expect(search(planningsDown)).rejects.toThrow(/HTTP 503/);
     });
   });
 });

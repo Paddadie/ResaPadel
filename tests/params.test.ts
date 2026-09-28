@@ -42,7 +42,7 @@ describe("périodes", () => {
   const sunday = new Date(2026, 9, 4, 10, 0); // dimanche 04/10/2026
   const TUE_THU = [2, 4];
   const WEEKEND = [6, 0];
-  const dates = (period: Period, days: number[], now: Date) => datesToCheck(days, periodRange(period, now), now);
+  const dates = (period: Period, days: number[], now: Date) => datesToCheck(days, periodRange(period, now));
 
   test("cette semaine : jusqu'au dimanche", () => {
     expect(dates({ kind: "week" }, TUE_THU, monday)).toEqual(["2026-09-29", "2026-10-01"]);

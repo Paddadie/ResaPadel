@@ -2,16 +2,19 @@
 
 import { possibleStartHours, validStartHours } from "./params";
 import { periodRange } from "./period";
-import { addDays, formatMinutes, fromIsoDate, toIsoDate } from "./time";
+import { formatMinutes, fromIsoDate, toIsoDate } from "./time";
 import type { Period, SearchOutcome, SearchParams, SearchResult, TimeRange } from "./types";
 
-const DAY_SHORT = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+/** Noms des jours, indexés comme Date.getDay() (0 = dimanche). */
+export const DAY_SHORT = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const DAY_LONG = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 const MONTH_SHORT = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
-const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]; // lundi en premier
+
+/** Jours dans l'ordre d'affichage, lundi en premier (valeurs de Date.getDay()). */
+export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 /** ["a", "b", "c"] -> "a, b ou c" */
-export function joinOr(items: string[]): string {
+function joinOr(items: string[]): string {
   if (items.length <= 1) return items.join("");
   return `${items.slice(0, -1).join(", ")} ou ${items.at(-1)}`;
 }
@@ -43,8 +46,7 @@ export function formatWhere(result: SearchResult): string {
 export function describePeriod(period: Period, now: Date): string {
   if (period.kind === "all") return "Jusqu'au dernier jour ouvert à la réservation (environ 60 jours)";
   const { from, to } = periodRange(period, now);
-  const today = addDays(now, 0);
-  const start = toIsoDate(from < today ? today : from);
+  const start = toIsoDate(from);
   const end = toIsoDate(to);
   if (start === end) return `Le ${formatDay(end)}`;
   return `Du ${formatDay(start)} au ${formatDay(end)}`;

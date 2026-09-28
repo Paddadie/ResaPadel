@@ -10,11 +10,18 @@ export interface DateRange {
 }
 
 /**
- * Dates couvertes par une période, à partir de `now`. Les semaines vont du lundi au dimanche.
+ * Dates couvertes par une période, à partir de `now`, sans remonter avant aujourd'hui
+ * ni dépasser le plafond MAX_DAYS_AHEAD. Les semaines vont du lundi au dimanche.
  * La période doit être valide (voir validatePeriod).
  */
 export function periodRange(period: Period, now: Date): DateRange {
   const today = addDays(now, 0);
+  const lastAllowed = addDays(today, MAX_DAYS_AHEAD - 1);
+  const { from, to } = unboundedRange(period, today);
+  return { from: from < today ? today : from, to: to > lastAllowed ? lastAllowed : to };
+}
+
+function unboundedRange(period: Period, today: Date): DateRange {
   const sunday = addDays(today, (7 - today.getDay()) % 7); // dimanche de la semaine en cours
 
   switch (period.kind) {
@@ -31,19 +38,11 @@ export function periodRange(period: Period, now: Date): DateRange {
   }
 }
 
-/**
- * Dates ("YYYY-MM-DD") à interroger : les jours demandés dans la période,
- * sans remonter avant aujourd'hui ni dépasser le plafond MAX_DAYS_AHEAD.
- */
-export function datesToCheck(days: Weekday[], range: DateRange, now: Date): string[] {
-  const today = addDays(now, 0);
-  const lastAllowed = addDays(today, MAX_DAYS_AHEAD - 1);
-  const from = range.from < today ? today : range.from;
-  const to = range.to > lastAllowed ? lastAllowed : range.to;
+/** Dates ("YYYY-MM-DD") à interroger : les jours demandés dans la période (voir periodRange). */
+export function datesToCheck(days: Weekday[], range: DateRange): string[] {
   const wanted = new Set(days);
-
   const dates: string[] = [];
-  for (let day = from; day <= to; day = addDays(day, 1)) {
+  for (let day = range.from; day <= range.to; day = addDays(day, 1)) {
     if (wanted.has(day.getDay())) dates.push(toIsoDate(day));
   }
   return dates;

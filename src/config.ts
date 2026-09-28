@@ -32,13 +32,10 @@ export const MAX_DAYS_AHEAD = 63;
 /** Délai maximal d'une requête vers l'API, par le relais ou la ligne de commande. */
 export const API_TIMEOUT_MS = 15_000;
 
-/** Côté navigateur, un peu plus long : en cas de lenteur, c'est le relais qui répond avec un message clair. */
+/** Côté navigateur, un peu plus long : en cas de lenteur, c'est le relais qui abandonne en premier (erreur 502). */
 export const BROWSER_TIMEOUT_MS = API_TIMEOUT_MS + 5_000;
 
-/** Au retour dans l'application, les résultats plus anciens que ce délai sont recherchés à nouveau. */
-export const AUTO_REFRESH_AFTER_MS = 15 * 60_000;
-
-/** Recherche lancée à l'ouverture : mardi et jeudi, 2h, début à 18h ou 19h. */
+/** Recherche proposée à l'ouverture : mardi et jeudi, 2h, début à 18h ou 19h. */
 export const DEFAULT_SEARCH: SearchParams = {
   days: [2, 4],
   startHours: [18, 19],

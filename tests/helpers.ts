@@ -10,7 +10,10 @@ import type { Offer } from "../src/core/types";
 export const API = "https://api.test";
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
 
-/** Réponse réelle de l'API enregistrée dans tests/fixtures. */
+/**
+ * Réponse réelle de l'API enregistrée dans tests/fixtures. Elles contiennent les débuts
+ * de 18h à 23h : une fenêtre plus large que celle de la recherche par défaut.
+ */
 export function fixture(name: string): any {
   return JSON.parse(readFileSync(join(FIXTURES, name), "utf8"));
 }

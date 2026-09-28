@@ -44,5 +44,5 @@
 
 .update-prompt-confirm {
   background: var(--ball);
-  color: #14202e;
+  color: var(--on-ball);
 }

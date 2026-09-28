@@ -1,21 +1,41 @@
 // Démarrage : formulaire, recherche via le relais Cloudflare, affichage des résultats.
+// Rien n'est demandé au site du club tant que la recherche n'est pas lancée à la main.
 
 import "./style.css";
-import { AUTO_REFRESH_AFTER_MS, BROWSER_TIMEOUT_MS, RELAY_URL } from "./config";
+import { BROWSER_TIMEOUT_MS, RELAY_URL } from "./config";
 import { loadDefaultSearch } from "./core/defaults";
 import { buildBookingUrl } from "./core/doinsport";
 import { searchAvailabilities } from "./core/search";
 import { initUpdatePrompt } from "./pwa/updatePrompt";
 import { byId, deviceStorage } from "./ui/dom";
+import { initChipPop, replayAnimation } from "./ui/effects";
 import { showError, showProgress, showResults } from "./ui/results";
 import { initSearchForm } from "./ui/searchForm";
 import { initSettingsPage } from "./ui/settingsPage";
 
+const appbar = byId("appbar");
 const searchButton = byId<HTMLButtonElement>("search-button");
 const bookLink = byId<HTMLAnchorElement>("book-link");
-const resultsSection = byId("results");
 
-bookLink.href = buildBookingUrl();
+/** Vrai dans l'app installée sur l'écran d'accueil d'un iPhone (propriété propre à iOS). */
+const installedOnIPhone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+/**
+ * Bouton « Réserver ». Sur iPhone, l'app installée ouvre les autres sites dans un navigateur
+ * intégré qui la recouvre, et iOS ne permet pas de viser le navigateur par défaut : le schéma
+ * « googlechromes: » (documenté par Google) ouvre plutôt l'app Chrome, à côté de l'app padel.
+ */
+function setBookingLink(activityId?: string): void {
+  const url = buildBookingUrl(activityId);
+  if (installedOnIPhone) {
+    bookLink.href = url.replace(/^https:/, "googlechromes:");
+    bookLink.removeAttribute("target"); // c'est iOS qui passe la main à Chrome : aucune page à ouvrir ici
+  } else {
+    bookLink.href = url;
+  }
+}
+
+setBookingLink();
 
 /** Appel à l'API via le relais, avec des messages d'erreur compréhensibles. */
 async function fetchJson(url: string): Promise<unknown> {
@@ -33,14 +53,9 @@ async function fetchJson(url: string): Promise<unknown> {
 }
 
 let searching = false;
-let rerunRequested = false; // recherche demandée pendant qu'une autre tourne (réglages modifiés)
-let lastSearchAt = 0;
 
-async function runSearch(scrollToResults: boolean): Promise<void> {
-  if (searching) {
-    rerunRequested = true;
-    return;
-  }
+async function runSearch(): Promise<void> {
+  if (searching) return;
   const error = form.validationError();
   if (error) {
     showError(error);
@@ -51,10 +66,10 @@ async function runSearch(scrollToResults: boolean): Promise<void> {
   searchButton.disabled = true;
   searchButton.textContent = "Recherche…";
   showProgress(0, 0);
-  if (scrollToResults) {
-    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    resultsSection.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
-  }
+  replayAnimation(appbar, "swing"); // la raquette de l'en-tête frappe une balle
+  // Panneau replié : les résultats remontent juste sous le résumé de la recherche.
+  form.setCollapsed(true);
+  window.scrollTo({ top: 0, behavior: "smooth" });
 
   const params = form.getParams();
   try {
@@ -64,39 +79,31 @@ async function runSearch(scrollToResults: boolean): Promise<void> {
       fetchJson,
       onProgress: showProgress,
     });
-    bookLink.href = buildBookingUrl(outcome.activityId);
+    setBookingLink(outcome.activityId);
     showResults(outcome, params);
   } catch (err) {
     console.error(err);
     showError(err instanceof Error ? err.message : String(err));
   } finally {
     searching = false;
-    lastSearchAt = Date.now();
     searchButton.disabled = false;
     searchButton.textContent = "Rechercher";
-  }
-  if (rerunRequested) {
-    rerunRequested = false;
-    void runSearch(false);
   }
 }
 
 const storage = deviceStorage();
-const form = initSearchForm(loadDefaultSearch(storage), () => void runSearch(true));
+const form = initSearchForm(loadDefaultSearch(storage), () => void runSearch());
 initUpdatePrompt();
-void runSearch(false); // recherche par défaut à l'ouverture (page Réglages)
+initChipPop();
 
-// Réglages modifiés : la recherche affichée repart des nouveaux jours, heures et durée.
+// Réglages modifiés : le formulaire repart des nouveaux jours, heures et durée, ouvert et prêt à être lancé.
 initSettingsPage(storage, (defaults) => {
   form.setParams(defaults);
-  void runSearch(false);
+  form.setCollapsed(false);
 });
 
 // L'app installée sur iPhone est souvent reprise depuis le multitâche sans être
-// rechargée : on relance la recherche si les résultats affichés sont trop anciens.
+// rechargée : les dates proposées suivent la date du jour.
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState !== "visible" || searching) return;
-  if (Date.now() - lastSearchAt < AUTO_REFRESH_AFTER_MS) return;
-  form.refresh();
-  void runSearch(false);
+  if (document.visibilityState === "visible") form.refresh();
 });

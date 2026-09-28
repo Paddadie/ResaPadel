@@ -26,7 +26,7 @@ export function buildPlanningUrl(
   return `${apiBaseUrl}/clubs/playgrounds/plannings/${isoDate}?${params}`;
 }
 
-export function buildActivitiesUrl(apiBaseUrl: string): string {
+function buildActivitiesUrl(apiBaseUrl: string): string {
   const params = new URLSearchParams({ "club.block.price.category.id": CLUB.categoryId, "club.id": CLUB.id });
   return `${apiBaseUrl}/activities?${params}`;
 }
@@ -48,7 +48,7 @@ export function buildBookingUrl(activityId: string = CLUB.activityId): string {
  * Éléments d'une collection. Selon l'en-tête Accept, l'API renvoie du JSON-LD
  * ({ "hydra:member": [...] }) ou un simple tableau JSON.
  */
-export function collectionItems(json: unknown): unknown[] {
+function collectionItems(json: unknown): unknown[] {
   if (Array.isArray(json)) return json;
   const items = (json as Record<string, unknown> | null)?.["hydra:member"];
   if (!Array.isArray(items)) throw new Error("Réponse inattendue de l'API : ni tableau, ni champ hydra:member");

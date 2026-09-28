@@ -11,10 +11,12 @@
     <title>Padel · Sporting Nantes</title>
   </head>
   <body>
-    <header class="appbar">
+    <header class="appbar" id="appbar">
       <div class="appbar-inner">
         <!-- Icône générée au build depuis public/icon.png (pwa-assets.config.ts). -->
         <img class="brand-icon" src="pwa-192x192.png" alt="" width="56" height="56" />
+        <!-- Balle envoyée par la raquette au lancement d'une recherche. -->
+        <span class="flying-ball" aria-hidden="true"></span>
         <div>
           <h1>Padel</h1>
           <p>Sporting Nantes · créneaux libres</p>
@@ -31,55 +33,76 @@
     </header>
 
     <main id="search-view">
-      <form id="search-form" class="panel" novalidate>
-        <div class="field">
-          <span class="label" id="days-label">Jours</span>
-          <div class="days" data-field="days" role="group" aria-labelledby="days-label"></div>
-        </div>
+      <section class="panel search-panel" id="search-panel" aria-label="Recherche">
+        <!-- Replié après le lancement d'une recherche ; le résumé rappelle alors ce qui est affiché. -->
+        <button class="panel-toggle" type="button" id="search-toggle" aria-expanded="true" aria-controls="search-form">
+          <span class="panel-toggle-text">
+            <span class="panel-title">Recherche</span>
+            <span class="note" id="search-recap" hidden></span>
+          </span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
 
-        <div class="field">
-          <span class="label" id="period-label">Période</span>
-          <div class="chips" id="period" role="group" aria-labelledby="period-label">
-            <button class="chip" type="button" data-period="all">Tout</button>
-            <button class="chip" type="button" data-period="week">Cette semaine</button>
-            <button class="chip" type="button" data-period="weekend">Ce week-end</button>
-            <button class="chip" type="button" data-period="next">Semaine proch.</button>
-            <button class="chip" type="button" data-period="custom">Dates…</button>
+        <!-- Deux niveaux pour que le repli puisse glisser (voir .fold dans style.css). -->
+        <div class="fold">
+          <div class="fold-inner">
+            <form id="search-form" class="panel-body" novalidate>
+              <div class="field">
+                <span class="label" id="days-label">Jours</span>
+                <div class="days" data-field="days" role="group" aria-labelledby="days-label"></div>
+              </div>
+
+              <div class="field">
+                <span class="label" id="period-label">Période</span>
+                <div class="chips" id="period" role="group" aria-labelledby="period-label">
+                  <button class="chip" type="button" data-period="all">Tout</button>
+                  <button class="chip" type="button" data-period="week">Cette semaine</button>
+                  <button class="chip" type="button" data-period="weekend">Ce week-end</button>
+                  <button class="chip" type="button" data-period="next">Semaine proch.</button>
+                  <button class="chip" type="button" data-period="custom">Dates…</button>
+                </div>
+                <div class="dates" id="custom-dates" hidden>
+                  <label for="date-from">Du<input id="date-from" type="date" /></label>
+                  <label for="date-to">Au<input id="date-to" type="date" /></label>
+                </div>
+                <p class="note" id="period-note"></p>
+              </div>
+
+              <div class="field">
+                <div class="field-head">
+                  <span class="label" id="hours-label">Début du créneau</span>
+                  <button class="link" type="button" data-field="all-hours">Toutes les heures</button>
+                </div>
+                <div class="hours" data-field="hours" role="group" aria-labelledby="hours-label"></div>
+              </div>
+
+              <div class="field">
+                <span class="label" id="duration-label">Durée</span>
+                <div class="seg" data-field="duration" role="group" aria-labelledby="duration-label"></div>
+              </div>
+
+              <div class="field">
+                <span class="label" id="mode-label">Afficher</span>
+                <div class="seg" id="mode" role="group" aria-labelledby="mode-label">
+                  <button type="button" data-mode="all">Toutes les dispos</button>
+                  <button type="button" data-mode="first">La prochaine</button>
+                </div>
+              </div>
+
+              <p class="summary" id="summary"></p>
+              <button class="search-btn" type="submit" id="search-button">Rechercher</button>
+            </form>
           </div>
-          <div class="dates" id="custom-dates" hidden>
-            <label for="date-from">Du<input id="date-from" type="date" /></label>
-            <label for="date-to">Au<input id="date-to" type="date" /></label>
-          </div>
-          <p class="note" id="period-note"></p>
         </div>
+      </section>
 
-        <div class="field">
-          <div class="field-head">
-            <span class="label" id="hours-label">Début du créneau</span>
-            <button class="link" type="button" data-field="all-hours">Toutes les heures</button>
-          </div>
-          <div class="hours" data-field="hours" role="group" aria-labelledby="hours-label"></div>
+      <section class="results" aria-live="polite">
+        <div class="status-block">
+          <p class="status" id="status"></p>
+          <div class="progress" id="progress" hidden><span id="progress-bar"></span></div>
         </div>
-
-        <div class="field">
-          <span class="label" id="duration-label">Durée</span>
-          <div class="seg" data-field="duration" role="group" aria-labelledby="duration-label"></div>
-        </div>
-
-        <div class="field">
-          <span class="label" id="mode-label">Afficher</span>
-          <div class="seg" id="mode" role="group" aria-labelledby="mode-label">
-            <button type="button" data-mode="all">Toutes les dispos</button>
-            <button type="button" data-mode="first">La prochaine</button>
-          </div>
-        </div>
-
-        <p class="summary" id="summary"></p>
-        <button class="search-btn" type="submit" id="search-button">Rechercher</button>
-      </form>
-
-      <section class="results" id="results" aria-live="polite">
-        <p class="status" id="status"></p>
         <div id="result-list"></div>
       </section>
     </main>
@@ -88,7 +111,7 @@
       <section class="panel" id="settings-fields" aria-labelledby="settings-title">
         <div>
           <h2 class="panel-title" id="settings-title">Recherche à l'ouverture</h2>
-          <p class="note">Lancée à chaque ouverture de l'application. Enregistrée sur cet appareil.</p>
+          <p class="note">Proposée à chaque ouverture de l'application. Enregistrée sur cet appareil.</p>
         </div>
 
         <div class="field">

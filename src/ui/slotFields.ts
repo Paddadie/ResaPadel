@@ -3,20 +3,10 @@
 // remplis ici.
 
 import { CLOSING_HOUR, FIRST_START_HOUR } from "../config";
+import { DAY_SHORT, WEEK_ORDER } from "../core/format";
 import { possibleStartHours, validStartHours } from "../core/params";
 import type { SlotChoice } from "../core/types";
 import { clickedButton, setPressed } from "./dom";
-
-/** Jours dans l'ordre d'affichage, lundi en premier (valeurs de Date.getDay()). */
-const DAYS: [number, string][] = [
-  [1, "Lun"],
-  [2, "Mar"],
-  [3, "Mer"],
-  [4, "Jeu"],
-  [5, "Ven"],
-  [6, "Sam"],
-  [0, "Dim"],
-];
 
 function part(root: HTMLElement, name: string): HTMLElement {
   const element = root.querySelector<HTMLElement>(`[data-field="${name}"]`);
@@ -46,7 +36,7 @@ export function initSlotFields(root: HTMLElement, choice: SlotChoice, onChange: 
   const hours = part(root, "hours");
   const duration = part(root, "duration");
 
-  days.append(...DAYS.map(([day, label]) => optionButton(label, "day", day, "chip")));
+  days.append(...WEEK_ORDER.map((day) => optionButton(DAY_SHORT[day], "day", day, "chip")));
   for (let hour = FIRST_START_HOUR; hour < CLOSING_HOUR; hour++) {
     hours.append(optionButton(`${hour}h`, "hour", hour, "chip"));
   }

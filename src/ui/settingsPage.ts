@@ -1,4 +1,4 @@
-// Page Réglages (adresse #reglages) : jours, heures et durée de la recherche lancée à
+// Page Réglages (adresse #reglages) : jours, heures et durée de la recherche proposée à
 // l'ouverture, enregistrés sur l'appareil à chaque changement, et version de l'application.
 
 import { DEFAULT_SEARCH } from "../config";

@@ -1,6 +1,6 @@
 # Padel · Sporting Nantes
 
-Application web (PWA) qui liste les créneaux de padel libres au Sporting Nantes, club qui utilise la plateforme Doinsport. On choisit les jours, la période, les heures de début, la durée et « toutes les dispos » ou « la prochaine ». À l'ouverture, elle lance la recherche par défaut : **mardi et jeudi, 2h, début à 18h ou 19h**. Ces jours, heures et durée se changent dans la page **Réglages** (engrenage en haut à droite) ; ils sont enregistrés sur l'appareil.
+Application web (PWA) qui liste les créneaux de padel libres au Sporting Nantes, club qui utilise la plateforme Doinsport. On choisit les jours, la période, les heures de début, la durée et « toutes les dispos » ou « la prochaine ». À l'ouverture, le formulaire propose la recherche par défaut : **mardi et jeudi, 2h, début à 18h ou 19h**. Rien n'est demandé au site du club tant qu'on n'a pas touché **Rechercher** ; le formulaire se replie alors sous forme de résumé, qu'on touche pour le rouvrir. Ces jours, heures et durée se changent dans la page **Réglages** (engrenage en haut à droite) ; ils sont enregistrés sur l'appareil.
 
 Les créneaux ne sont pas cliquables : le site du club ne permet pas d'ouvrir un créneau précis par un lien (c'est vérifié dans son code). Le bouton **« Réserver sur le site du club »** ouvre la page padel du club ; il reste à y choisir le jour et l'heure.
 
@@ -19,7 +19,7 @@ L'API du club refuse les appels venant d'un autre site que le sien (CORS). Le re
 
 Les requêtes partent une par une, une par jour recherché. La recherche s'arrête d'elle-même au premier jour pas encore ouvert à la réservation (le club ouvre environ 60 jours à l'avance), ou dès le premier jour avec une dispo en mode « la prochaine ».
 
-Un jour qui ne répond pas est retenté une fois, puis sauté avec un avertissement ; après deux jours en échec d'affilée, la recherche s'interrompt en gardant ce qu'elle a trouvé. Quand on revient dans l'application après plus de 15 minutes, la recherche est relancée.
+Un jour qui ne répond pas est retenté une fois, puis sauté avec un avertissement ; après deux jours en échec d'affilée, la recherche s'interrompt en gardant ce qu'elle a trouvé.
 
 ## Règle de recherche
 
@@ -34,21 +34,22 @@ Les créneaux déjà commencés le jour même sont ignorés.
 
 ```
 index.html                     page unique : formulaire, résultats, bouton Réserver
-src/main.ts                    démarrage, appel au relais, enchaînement de la recherche
+src/main.ts                    démarrage, appel au relais, lancement de la recherche, lien Réserver
 src/config.ts                  identifiants du club, adresses, recherche par défaut
 src/core/types.ts              types partagés
 src/core/params.ts             heures de début possibles et validation d'une recherche
-src/core/defaults.ts           recherche lancée à l'ouverture (réglage enregistré sur l'appareil)
+src/core/defaults.ts           recherche proposée à l'ouverture (réglage enregistré sur l'appareil)
 src/core/doinsport.ts          adresses de l'API et lecture de ses réponses
 src/core/search.ts             règle de recherche et orchestration des requêtes
 src/core/period.ts             périodes (cette semaine, ce week-end…) et dates à interroger
 src/core/format.ts             textes affichés (jours, heures, prix, résumé)
 src/core/time.ts               utilitaires d'heures et de dates
-src/ui/searchForm.ts           formulaire de recherche
+src/ui/searchForm.ts           formulaire de recherche, replié après le lancement
 src/ui/slotFields.ts           champs jours, heures et durée, communs à la recherche et aux réglages
 src/ui/settingsPage.ts         page Réglages (#reglages) : recherche à l'ouverture, version
 src/ui/results.ts              liste des résultats groupés par jour
 src/ui/dom.ts                  accès aux éléments de la page et au stockage de l'appareil
+src/ui/effects.ts              petites animations déclenchées par le code (rebond des pastilles, coup de raquette)
 src/pwa/updatePrompt.ts(.css)  bandeau « Nouvelle version disponible » (repris de Tsuzuku)
 src/style.css                  style « terrain de padel » (thèmes clair et sombre, polices système)
 src/env.d.ts                   type de la version (package.json) injectée au build
@@ -96,7 +97,7 @@ L'application est ensuite à l'adresse `https://paddadie.github.io/ResaPadel/`.
 2. Touchez le bouton de partage, puis **« Sur l'écran d'accueil »**.
 3. L'icône raquette apparaît. L'application s'ouvre en plein écran.
 
-Pour réserver, soyez connecté à votre compte sur `sporting-nantes.doinsport.club` dans le navigateur qu'ouvre le bouton « Réserver ».
+Dans l'application installée, le bouton « Réserver » ouvre la page du club dans **l'app Chrome**, à côté de l'app padel : on passe de l'une à l'autre pour revoir les dispos. iOS ne permet pas à une application web de choisir le navigateur par défaut ; sans Chrome installé, le bouton ne fait rien. Pour réserver, soyez connecté à votre compte sur `sporting-nantes.doinsport.club` dans Chrome.
 
 ## À savoir
 

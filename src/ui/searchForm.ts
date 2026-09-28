@@ -1,5 +1,6 @@
 // Formulaire de recherche : jours, période, heures de début, durée, mode.
 // L'état vit dans un objet SearchParams ; l'affichage est recalculé à chaque changement.
+// Le panneau se replie quand une recherche est lancée et se rouvre d'un toucher sur son en-tête.
 
 import { MAX_DAYS_AHEAD } from "../config";
 import { describePeriod, describeSearch } from "../core/format";
@@ -10,6 +11,9 @@ import { byId, clickedButton, setPressed } from "./dom";
 import { initSlotFields } from "./slotFields";
 
 const WEEKEND = [6, 0];
+const PERIOD_KINDS: PeriodKind[] = ["all", "week", "weekend", "next", "custom"];
+
+const isPeriodKind = (value: unknown): value is PeriodKind => PERIOD_KINDS.includes(value as PeriodKind);
 
 export interface SearchForm {
   /** Copie de la recherche actuelle. */
@@ -20,12 +24,17 @@ export interface SearchForm {
   validationError(): string | null;
   /** Recalcule ce qui dépend de la date du jour, par exemple quand l'application est reprise le lendemain. */
   refresh(): void;
+  /** Replie le panneau (seul le résumé reste visible) ou le rouvre. */
+  setCollapsed(collapsed: boolean): void;
 }
 
 export function initSearchForm(initial: SearchParams, onSubmit: () => void): SearchForm {
   const params: SearchParams = structuredClone(initial);
 
   const form = byId<HTMLFormElement>("search-form");
+  const panel = byId("search-panel");
+  const toggle = byId("search-toggle");
+  const recap = byId("search-recap");
   const period = byId("period");
   const mode = byId("mode");
   const customDates = byId("custom-dates");
@@ -43,8 +52,8 @@ export function initSearchForm(initial: SearchParams, onSubmit: () => void): Sea
   const customPeriod = (): Period => ({ kind: "custom", from: dateFrom.value, to: dateTo.value });
 
   period.addEventListener("click", (event) => {
-    const kind = clickedButton(event)?.dataset.period as PeriodKind | undefined;
-    if (!kind) return;
+    const kind = clickedButton(event)?.dataset.period;
+    if (!isPeriodKind(kind)) return;
     params.period = kind === "custom" ? customPeriod() : { kind };
     if (kind === "weekend") params.days = [...WEEKEND];
     render();
@@ -69,6 +78,16 @@ export function initSearchForm(initial: SearchParams, onSubmit: () => void): Sea
     onSubmit();
   });
 
+  toggle.addEventListener("click", () => setCollapsed(!form.inert));
+
+  function setCollapsed(collapsed: boolean): void {
+    // Replié en glissant (style.css) ; « inert » retire le formulaire masqué du clavier et des lecteurs d'écran.
+    panel.classList.toggle("collapsed", collapsed);
+    form.inert = collapsed;
+    recap.hidden = !collapsed;
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+  }
+
   function render(): void {
     renderSlotFields();
     for (const button of period.querySelectorAll<HTMLElement>("[data-period]")) {
@@ -84,11 +103,13 @@ export function initSearchForm(initial: SearchParams, onSubmit: () => void): Sea
     dateFrom.max = dateTo.max = toIsoDate(addDays(now, MAX_DAYS_AHEAD - 1));
     customDates.hidden = params.period.kind !== "custom";
     // Dates incomplètes : pas de résumé de période, le message d'erreur explique quoi corriger.
-    periodNote.textContent = validatePeriod(params.period) ? "" : describePeriod(params.period, now);
+    const periodText = validatePeriod(params.period) ? "" : describePeriod(params.period, now);
+    periodNote.textContent = periodText;
 
     const error = validateSearch(params);
     summary.textContent = error ?? `${describeSearch(params)}.`;
     summary.classList.toggle("invalid", error !== null);
+    recap.textContent = error ?? `${describeSearch(params)} · ${periodText}`;
   }
 
   render();
@@ -100,5 +121,6 @@ export function initSearchForm(initial: SearchParams, onSubmit: () => void): Sea
     },
     validationError: () => validateSearch(params),
     refresh: render,
+    setCollapsed,
   };
 }

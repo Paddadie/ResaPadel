@@ -83,6 +83,7 @@ main {
 }
 
 .appbar-inner {
+  position: relative; /* repère de la balle envoyée par la raquette */
   display: flex;
   align-items: center;
   gap: 12px;
@@ -94,6 +95,19 @@ main {
   margin: -8px -10px -8px -12px; /* la raquette est étroite : on reprend la marge transparente de l'image */
   flex: none;
   filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.3));
+  transform-origin: 35% 85%; /* le manche : la raquette pivote autour quand elle frappe */
+}
+
+.flying-ball {
+  position: absolute;
+  left: 40px;
+  top: calc(50% - 20px);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ball);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .appbar h1 {
@@ -145,6 +159,65 @@ main {
   font-family: var(--display);
   font-size: 18px;
   font-weight: 700;
+}
+
+/* En-tête du panneau de recherche : le toucher replie ou rouvre le formulaire. */
+.panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+}
+
+.panel-toggle-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chevron {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--court);
+}
+
+.panel-toggle[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+/* Repli du formulaire : la rangée de .fold passe de 1fr à 0fr, ce qui permet de faire glisser
+   une hauteur inconnue. L'espace sous l'en-tête est dans le formulaire pour se replier avec lui. */
+.search-panel {
+  gap: 0;
+}
+
+.fold {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+.search-panel.collapsed .fold {
+  grid-template-rows: 0fr;
+}
+
+.fold-inner {
+  min-height: 0;
+  overflow: hidden;
+  /* marge latérale pour que le contour de focus des pastilles ne soit pas coupé */
+  margin-inline: -4px;
+  padding-inline: 4px;
+}
+
+.panel-body {
+  display: grid;
+  gap: 14px;
+  padding: 14px 0 4px;
 }
 
 .field {
@@ -321,13 +394,52 @@ input:focus-visible {
 .results {
   display: grid;
   gap: 12px;
-  scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 12px);
+}
+
+.status-block {
+  display: grid;
+  gap: 6px;
 }
 
 .status {
   margin: 0 4px;
   font-size: 13.5px;
   color: var(--muted);
+}
+
+/* Recherche en cours : une balle de padel à côté du texte. */
+.status.searching {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status.searching::before {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 130% 50%, transparent 58%, rgb(255 255 255 / 0.85) 60% 68%, transparent 70%), var(--ball);
+  box-shadow: 0 0 0 1px rgb(20 32 46 / 0.12);
+}
+
+/* Avancement de la recherche, comme une ligne de terrain qui se trace. */
+.progress {
+  height: 3px;
+  margin: 0 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  background: var(--court);
+  transform-origin: left;
+  transform: scaleX(0);
 }
 
 .status.error {
@@ -434,11 +546,93 @@ input:focus-visible {
   box-shadow: 0 4px 14px rgb(20 32 46 / 0.18);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .chip,
-  .seg button {
-    transition:
-      background-color 0.15s,
-      color 0.15s;
+/* --- Animations, jouées même si l'appareil demande de réduire les animations (choix de l'utilisateur) --- */
+
+.chip,
+.seg button {
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.chevron {
+  transition: transform 0.3s;
+}
+
+.fold {
+  transition: grid-template-rows 0.3s ease;
+}
+
+.progress span {
+  transition: transform 0.2s ease-out;
+}
+
+.status.searching::before {
+  animation: bounce 0.55s cubic-bezier(0.3, 0, 0.7, 1) infinite alternate;
+}
+
+/* Résultats en cascade : --i est le rang de la ligne, posé par src/ui/results.ts. */
+.rise {
+  animation: rise 0.35s ease-out both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+.chip.pop {
+  animation: pop 0.25s ease-out;
+}
+
+.appbar.swing .brand-icon {
+  animation: swing 0.5s cubic-bezier(0.3, 0, 0.3, 1);
+}
+
+.appbar.swing .flying-ball {
+  animation: fly 0.7s 0.25s ease-out;
+}
+
+@keyframes bounce {
+  0% {
+    transform: translateY(2px) scale(1.15, 0.85);
+  }
+  18% {
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    transform: translateY(-9px);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes pop {
+  40% {
+    transform: scale(0.88);
+  }
+  75% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes swing {
+  30% {
+    transform: rotate(-28deg);
+  }
+  60% {
+    transform: rotate(18deg);
+  }
+}
+
+@keyframes fly {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(170px, -14px);
   }
 }

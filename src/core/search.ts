@@ -106,6 +106,8 @@ export interface SearchOptions {
  *
  * Un jour qui ne répond pas est retenté une fois, puis sauté avec un avertissement,
  * sauf le premier : son échec signifie en général que le site est injoignable.
+ * Après MAX_CONSECUTIVE_FAILURES jours en échec d'affilée, la recherche s'interrompt
+ * en gardant les résultats déjà trouvés.
  */
 export async function searchAvailabilities(options: SearchOptions): Promise<SearchOutcome> {
   const { params, apiBaseUrl, fetchJson, now = new Date() } = options;
@@ -116,7 +118,7 @@ export async function searchAvailabilities(options: SearchOptions): Promise<Sear
   if (invalid) throw new Error(invalid);
 
   const startHours = validStartHours(params.startHours, params.durationHours);
-  const dates = datesToCheck(params.days, periodRange(params.period, now), now);
+  const dates = datesToCheck(params.days, periodRange(params.period, now));
   const window = requestWindow(startHours, params.durationHours);
   const outcome: SearchOutcome = {
     results: [],
