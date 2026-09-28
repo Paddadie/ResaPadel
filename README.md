@@ -10,7 +10,7 @@ Les créneaux ne sont pas cliquables : le site du club ne permet pas d'ouvrir un
 iPhone (PWA installée)
    │  https://paddadie.github.io/ResaPadel/   ← GitHub Pages, redéployé à chaque push
    ▼
-Relais Cloudflare (worker/relay.ts)          ← ajoute l'autorisation CORS
+Relais Cloudflare (worker/relay.js)          ← ajoute l'autorisation CORS
    ▼
 api-v3.doinsport.club                        ← API publique du club, sans compte
 ```
@@ -53,12 +53,12 @@ src/pwa/updatePrompt.ts(.css)  bandeau « Nouvelle version disponible » (repris
 src/style.css                  style « terrain de padel » (thèmes clair et sombre, polices système)
 src/env.d.ts                   type de la version (package.json) injectée au build
 public/icon.png                icône : raquette de padel détourée (source des icônes générées au build)
-worker/relay.ts                relais Cloudflare (déployé avec wrangler.toml)
+worker/relay.js                relais Cloudflare (à coller dans le tableau de bord Cloudflare)
 tests/                         tests (Vitest) : recherche sur de vraies réponses de l'API, formats, relais
 cli.ts                         recherche en ligne de commande, pour tester sur PC
 vite.config.ts                 build, PWA (manifeste, service worker), version affichée
 pwa-assets.config.ts           icônes PNG générées depuis public/icon.png
-.github/workflows/deploy.yml   tests + build, puis déploiement de l'app et du relais sur push vers main
+.github/workflows/deploy.yml   tests + build + déploiement de l'app sur push vers main
 ```
 
 ## Développer sur PC
@@ -77,15 +77,9 @@ npm run format           # remet en forme le projet (Prettier)
 
 ### 1. Le relais Cloudflare
 
-Il tourne sur `https://padel-relais.pauldabadie.workers.dev`. Il est redéployé automatiquement à chaque push sur `main`, une fois ces deux secrets ajoutés au repo GitHub (à faire une seule fois) :
+Il tourne sur `https://padel-relais.pauldabadie.workers.dev`. Il n'est pas redéployé automatiquement : il change rarement. Pour le mettre à jour : tableau de bord Cloudflare → **Workers & Pages** → **padel-relais** → **Edit code**, puis collez tout le contenu de `worker/relay.js` et cliquez **Deploy**. Le fichier est autonome : ses constantes (club, adresse de l'API, délai) répètent celles de `src/config.ts`, et `npm test` vérifie qu'elles concordent.
 
-1. Cloudflare → **My Profile** → **API Tokens** → **Create Token** → modèle **Edit Cloudflare Workers** → créez le jeton et copiez-le.
-2. Cloudflare → **Workers & Pages** : l'**Account ID** est affiché à droite. Copiez-le.
-3. GitHub : repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**. Créez `CLOUDFLARE_API_TOKEN` (le jeton) et `CLOUDFLARE_ACCOUNT_ID`.
-
-Sans ces secrets, le déploiement de l'application fonctionne quand même : l'étape du relais est simplement sautée. Pour déployer le relais depuis le PC : `npx wrangler login`, puis `npx wrangler deploy`. Le relais importe les identifiants du club depuis `src/config.ts`, il ne peut donc plus être collé tel quel dans le tableau de bord Cloudflare.
-
-Si l'adresse de l'application change (autre nom de repo ou autre compte GitHub), mettez à jour `ALLOWED_ORIGINS` dans `worker/relay.ts`. Si l'adresse du relais change, mettez à jour `RELAY_URL` dans `src/config.ts`.
+Si l'adresse de l'application change (autre nom de repo ou autre compte GitHub), mettez à jour `ALLOWED_ORIGINS` dans `worker/relay.js`. Si l'adresse du relais change, mettez à jour `RELAY_URL` dans `src/config.ts`.
 
 ### 2. GitHub Pages
 

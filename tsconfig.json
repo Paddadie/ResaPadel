@@ -9,6 +9,8 @@
 
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": true, // worker/relay.js reste en JavaScript pour être collé dans Cloudflare
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,

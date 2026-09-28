@@ -1,8 +1,9 @@
 // Relais Cloudflare : ce qu'il laisse passer, ce qu'il refuse, et les en-têtes CORS.
 
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { API_BASE_URL, CLUB } from "../src/config";
-import relay from "../worker/relay";
+import { API_BASE_URL, API_TIMEOUT_MS, CLUB } from "../src/config";
+import relay from "../worker/relay.js";
 
 const APP_ORIGIN = "https://paddadie.github.io";
 const RELAY = "https://padel-relais.test";
@@ -10,8 +11,9 @@ const PLANNING =
   `/clubs/playgrounds/plannings/2026-10-06?club.id=${CLUB.id}&from=18%3A00%3A00&to=20%3A59%3A59` +
   `&activities.id=${CLUB.activityId}&bookingType=unique`;
 
-function call(path: string, { method = "GET", origin = APP_ORIGIN } = {}) {
-  return relay.fetch(new Request(RELAY + path, { method, headers: { Origin: origin } }));
+function call(path: string, { method = "GET", origin = APP_ORIGIN as string | null } = {}) {
+  const headers: Record<string, string> = origin ? { Origin: origin } : {};
+  return relay.fetch(new Request(RELAY + path, { method, headers }));
 }
 
 let upstream: ReturnType<typeof vi.fn>;
@@ -59,9 +61,34 @@ describe("relais", () => {
     expect(upstream).not.toHaveBeenCalled();
   });
 
-  test("n'autorise pas un autre site à lire les réponses", async () => {
-    const response = await call(PLANNING, { origin: "https://autre-site.test" });
-    expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  test("les chemins détournés (.., %2e%2e, %2f) ne sortent pas des adresses autorisées", async () => {
+    const club = `?club.id=${CLUB.id}`;
+    for (const path of [
+      `/clubs/playgrounds/plannings/2026-10-06/../../../bookings${club}`,
+      `/clubs/playgrounds/plannings/%2e%2e/%2e%2e/bookings${club}`,
+      `/clubs/playgrounds/plannings/2026-10-06%2f..%2fbookings${club}`,
+      `/activities/../clubs/bookings${club}`,
+    ]) {
+      expect((await call(path)).status, path).toBe(403);
+    }
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
+  test("refuse les autres sites et les visites directes, sans appeler l'API", async () => {
+    const otherSite = await call(PLANNING, { origin: "https://autre-site.test" });
+    expect(otherSite.status).toBe(403);
+    expect(otherSite.headers.get("Access-Control-Allow-Origin")).toBeNull();
+    expect((await call(PLANNING, { origin: null })).status).toBe(403);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+
+  test("interdit au navigateur d'interpréter une réponse comme une page", async () => {
+    upstream.mockResolvedValueOnce(
+      new Response("<script>alert(1)</script>", { headers: { "Content-Type": "text/html" } }),
+    );
+    const response = await call(PLANNING);
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(response.headers.get("Content-Security-Policy")).toContain("default-src 'none'");
   });
 
   test("répond à la vérification préalable du navigateur (OPTIONS)", async () => {
@@ -79,7 +106,14 @@ describe("relais", () => {
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(APP_ORIGIN);
   });
 
-  test("la racine indique que le relais fonctionne", async () => {
-    expect(await (await call("/")).text()).toBe("Relais padel opérationnel");
+  test("la racine indique que le relais fonctionne, même visitée directement", async () => {
+    expect(await (await call("/", { origin: null })).text()).toBe("Relais padel opérationnel");
+  });
+
+  test("reprend les valeurs de src/config.ts (le fichier est collé tel quel dans Cloudflare)", () => {
+    const source = readFileSync(new URL("../worker/relay.js", import.meta.url), "utf8");
+    expect(source).toContain(`const API_BASE_URL = "${API_BASE_URL}";`);
+    expect(source).toContain(`const CLUB_ID = "${CLUB.id}";`);
+    expect(source).toContain(`const REQUEST_TIMEOUT_MS = ${API_TIMEOUT_MS};`);
   });
 });

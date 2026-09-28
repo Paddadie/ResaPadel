@@ -3,14 +3,18 @@
 // relais fait l'appel à la place du navigateur et ajoute l'autorisation CORS.
 //
 // Il est volontairement limité : lecture seule, uniquement les deux adresses
-// utilisées par l'application, uniquement pour le club du Sporting Nantes.
-// Aucun identifiant ni secret : les données relayées sont publiques.
+// utilisées par l'application, uniquement pour le club du Sporting Nantes, et
+// uniquement pour les sites autorisés. Aucun identifiant ni secret : les données
+// relayées sont publiques.
 //
-// Déployé par GitHub Actions à chaque push sur main (voir wrangler.toml et le README).
+// Fichier autonome, à coller tel quel dans le tableau de bord Cloudflare (voir README).
+// Les constantes répètent celles de src/config.ts ; tests/relay.test.ts vérifie qu'elles concordent.
 
-import { API_BASE_URL, API_TIMEOUT_MS, CLUB } from "../src/config";
+const API_BASE_URL = "https://api-v3.doinsport.club";
+const CLUB_ID = "6178c4ab-50d4-4f2f-b360-f699f9034635";
+const REQUEST_TIMEOUT_MS = 15000;
 
-// Sites autorisés à lire les réponses depuis un navigateur.
+// Sites autorisés à utiliser le relais depuis un navigateur.
 const ALLOWED_ORIGINS = [
   "https://paddadie.github.io", // l'application en ligne
   "http://localhost:5173", // npm run dev
@@ -29,9 +33,19 @@ const ROUTES = [
   },
 ];
 
+// Ajoutés à toutes les réponses : le navigateur ne doit jamais interpréter une réponse
+// du relais comme une page (HTML, script), même si l'API renvoyait autre chose que du JSON.
+const SAFE_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+  "Cache-Control": "no-store",
+};
+
 export default {
-  async fetch(request: Request): Promise<Response> {
-    const cors = corsHeaders(request.headers.get("Origin"));
+  /** @param {Request} request */
+  async fetch(request) {
+    const origin = request.headers.get("Origin");
+    const cors = corsHeaders(origin);
 
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     if (request.method !== "GET") return textResponse("Méthode non autorisée", 405, cors);
@@ -39,12 +53,17 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/") return textResponse("Relais padel opérationnel", 200, cors);
 
+    // Un autre site (ou une visite directe) ne déclenche aucun appel à l'API. Un script
+    // peut imiter l'en-tête Origin : cette règle évite surtout qu'un site tiers se serve
+    // du relais à travers le navigateur de ses visiteurs.
+    if (!origin || !ALLOWED_ORIGINS.includes(origin)) return textResponse("Site non autorisé", 403, cors);
+
     const upstreamUrl = allowedUpstreamUrl(url);
     if (!upstreamUrl) return textResponse("Adresse non autorisée par le relais", 403, cors);
 
-    let upstream: Response;
+    let upstream;
     try {
-      upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(API_TIMEOUT_MS) });
+      upstream = await fetch(upstreamUrl, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       return textResponse(`Le site du club ne répond pas : ${reason}`, 502, cors);
@@ -54,17 +73,21 @@ export default {
       status: upstream.status,
       headers: {
         ...cors,
+        ...SAFE_HEADERS,
         "Content-Type": upstream.headers.get("Content-Type") || "application/json",
-        "Cache-Control": "no-store",
       },
     });
   },
 };
 
-/** Adresse de l'API à appeler, ou null si la demande sort du périmètre du relais. */
-function allowedUpstreamUrl(url: URL): string | null {
+/**
+ * Adresse de l'API à appeler, ou null si la demande sort du périmètre du relais.
+ * @param {URL} url
+ * @returns {string | null}
+ */
+function allowedUpstreamUrl(url) {
   const route = ROUTES.find((r) => r.path.test(url.pathname));
-  if (!route || url.searchParams.get("club.id") !== CLUB.id) return null;
+  if (!route || url.searchParams.get("club.id") !== CLUB_ID) return null;
 
   const params = new URLSearchParams();
   for (const name of route.params) {
@@ -74,7 +97,11 @@ function allowedUpstreamUrl(url: URL): string | null {
   return `${API_BASE_URL}${url.pathname}?${params}`;
 }
 
-function corsHeaders(origin: string | null): Record<string, string> {
+/**
+ * @param {string | null} origin
+ * @returns {Record<string, string>}
+ */
+function corsHeaders(origin) {
   if (!origin || !ALLOWED_ORIGINS.includes(origin)) return {};
   return {
     "Access-Control-Allow-Origin": origin,
@@ -85,6 +112,14 @@ function corsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
-function textResponse(message: string, status: number, headers: Record<string, string>): Response {
-  return new Response(message, { status, headers: { ...headers, "Content-Type": "text/plain; charset=utf-8" } });
+/**
+ * @param {string} message
+ * @param {number} status
+ * @param {Record<string, string>} headers
+ */
+function textResponse(message, status, headers) {
+  return new Response(message, {
+    status,
+    headers: { ...headers, ...SAFE_HEADERS, "Content-Type": "text/plain; charset=utf-8" },
+  });
 }

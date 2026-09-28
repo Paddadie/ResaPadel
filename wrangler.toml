@@ -1,6 +1,0 @@
-# Relais Cloudflare (worker/relay.ts), déployé par GitHub Actions à chaque push sur main.
-# Le nom doit rester celui du Worker existant : il donne l'adresse padel-relais.<compte>.workers.dev.
-name = "padel-relais"
-main = "worker/relay.ts"
-compatibility_date = "2025-09-01"
-workers_dev = true
