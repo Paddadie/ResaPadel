@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Prochains créneaux de padel libres au Sporting Nantes." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Padel" />
+    <!-- Barre d'état transparente : le bandeau bleu de l'en-tête passe dessous. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Padel · Sporting Nantes</title>
+  </head>
+  <body>
+    <header class="appbar">
+      <div class="appbar-inner">
+        <!-- Icône générée au build depuis public/icon.png (pwa-assets.config.ts). -->
+        <img class="brand-icon" src="pwa-192x192.png" alt="" width="56" height="56" />
+        <div>
+          <h1>Padel</h1>
+          <p>Sporting Nantes · créneaux libres</p>
+        </div>
+        <a class="settings-link" id="settings-link" href="#reglages" aria-label="Réglages">
+          <!-- Engrenage : les dents sont un cercle en pointillés épais. -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <circle cx="12" cy="12" r="8.5" stroke-width="3" stroke-dasharray="3.34 3.34" />
+            <circle cx="12" cy="12" r="6.2" stroke-width="2.2" />
+            <circle cx="12" cy="12" r="2.2" stroke-width="2" />
+          </svg>
+        </a>
+      </div>
+    </header>
+
+    <main id="search-view">
+      <form id="search-form" class="panel" novalidate>
+        <div class="field">
+          <span class="label" id="days-label">Jours</span>
+          <div class="days" data-field="days" role="group" aria-labelledby="days-label"></div>
+        </div>
+
+        <div class="field">
+          <span class="label" id="period-label">Période</span>
+          <div class="chips" id="period" role="group" aria-labelledby="period-label">
+            <button class="chip" type="button" data-period="all">Tout</button>
+            <button class="chip" type="button" data-period="week">Cette semaine</button>
+            <button class="chip" type="button" data-period="weekend">Ce week-end</button>
+            <button class="chip" type="button" data-period="next">Semaine proch.</button>
+            <button class="chip" type="button" data-period="custom">Dates…</button>
+          </div>
+          <div class="dates" id="custom-dates" hidden>
+            <label for="date-from">Du<input id="date-from" type="date" /></label>
+            <label for="date-to">Au<input id="date-to" type="date" /></label>
+          </div>
+          <p class="note" id="period-note"></p>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <span class="label" id="hours-label">Début du créneau</span>
+            <button class="link" type="button" data-field="all-hours">Toutes les heures</button>
+          </div>
+          <div class="hours" data-field="hours" role="group" aria-labelledby="hours-label"></div>
+        </div>
+
+        <div class="field">
+          <span class="label" id="duration-label">Durée</span>
+          <div class="seg" data-field="duration" role="group" aria-labelledby="duration-label"></div>
+        </div>
+
+        <div class="field">
+          <span class="label" id="mode-label">Afficher</span>
+          <div class="seg" id="mode" role="group" aria-labelledby="mode-label">
+            <button type="button" data-mode="all">Toutes les dispos</button>
+            <button type="button" data-mode="first">La prochaine</button>
+          </div>
+        </div>
+
+        <p class="summary" id="summary"></p>
+        <button class="search-btn" type="submit" id="search-button">Rechercher</button>
+      </form>
+
+      <section class="results" id="results" aria-live="polite">
+        <p class="status" id="status"></p>
+        <div id="result-list"></div>
+      </section>
+    </main>
+
+    <main id="settings-view" hidden>
+      <section class="panel" id="settings-fields" aria-labelledby="settings-title">
+        <div>
+          <h2 class="panel-title" id="settings-title">Recherche à l'ouverture</h2>
+          <p class="note">Lancée à chaque ouverture de l'application. Enregistrée sur cet appareil.</p>
+        </div>
+
+        <div class="field">
+          <span class="label" id="settings-days-label">Jours</span>
+          <div class="days" data-field="days" role="group" aria-labelledby="settings-days-label"></div>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <span class="label" id="settings-hours-label">Début du créneau</span>
+            <button class="link" type="button" data-field="all-hours">Toutes les heures</button>
+          </div>
+          <div class="hours" data-field="hours" role="group" aria-labelledby="settings-hours-label"></div>
+        </div>
+
+        <div class="field">
+          <span class="label" id="settings-duration-label">Durée</span>
+          <div class="seg" data-field="duration" role="group" aria-labelledby="settings-duration-label"></div>
+        </div>
+
+        <p class="summary" id="settings-summary" aria-live="polite"></p>
+        <button class="link" type="button" id="settings-reset">Revenir au réglage d'origine</button>
+      </section>
+
+      <section class="panel" aria-labelledby="about-title">
+        <h2 class="panel-title" id="about-title">À propos</h2>
+        <p class="note" id="app-version"></p>
+      </section>
+
+      <button class="search-btn" type="button" id="settings-done">Terminé</button>
+    </main>
+
+    <div class="book-bar" id="book-bar">
+      <a class="book" id="book-link" target="_blank" rel="noopener"
+        >Réserver sur le site du club <span aria-hidden="true">↗</span></a
+      >
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

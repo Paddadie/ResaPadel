@@ -1,0 +1,48 @@
+.update-prompt {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 14px;
+  background: var(--ink);
+  color: var(--ground);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.25);
+  max-width: 480px;
+  margin-inline: auto;
+}
+
+.update-prompt-text {
+  font-weight: 600;
+}
+
+.update-prompt-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.update-prompt-actions button {
+  border: 0;
+  border-radius: 10px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.update-prompt-dismiss {
+  background: transparent;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.update-prompt-confirm {
+  background: var(--ball);
+  color: #14202e;
+}

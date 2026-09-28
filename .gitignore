@@ -1,0 +1,9 @@
+node_modules
+dist
+dev-dist
+.wrangler
+*.log
+.DS_Store
+
+# Notes de travail locales, non publiées
+context.md

@@ -1,0 +1,444 @@
+/* Identité « terrain de padel » : gazon bleu, lignes blanches, jaune balle, raquette en icône. */
+:root {
+  --band: #1e5ba8; /* bandeau d'en-tête, identique en thème sombre (theme_color dans vite.config.ts) */
+  --court-line: rgb(255 255 255 / 0.3);
+  --ground: #eef2f6;
+  --surface: #ffffff;
+  --ink: #14202e;
+  --muted: #5b6b7d;
+  --line: #d5dee8;
+  --court: #1e5ba8;
+  --court-soft: #e1ebf7;
+  --on-court: #ffffff;
+  --ball: #d8e83a;
+  --on-ball: #14202e;
+  --combo: #b8620f;
+  --danger: #b3261e;
+  /* Polices système : arrondie sur iPhone (SF Pro Rounded), Segoe UI sur Windows. */
+  --display: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #0d141c;
+    --surface: #16212d;
+    --ink: #e6edf5;
+    --muted: #93a3b5;
+    --line: #28384a;
+    --court: #5b9be6;
+    --court-soft: #1c3150;
+    --on-court: #0d141c;
+    --combo: #f0a054;
+    --danger: #f2837a;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 15px/1.5 var(--body);
+}
+
+main,
+.appbar-inner {
+  max-width: 480px;
+  margin-inline: auto;
+  padding-inline: 12px;
+}
+
+main {
+  position: relative; /* passe au-dessus du bandeau qu'il chevauche */
+  margin-top: -22px;
+  display: grid;
+  gap: 14px;
+  /* place pour la barre « Réserver » fixée en bas */
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+/* --- En-tête : un terrain vu de dessus, avec le « T » des lignes de service --- */
+
+.appbar {
+  color: #fff;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) 0 62px;
+  background:
+    linear-gradient(var(--court-line), var(--court-line)) left 0 bottom 42px / 100% 2px no-repeat,
+    linear-gradient(var(--court-line), var(--court-line)) center bottom / 2px 42px no-repeat,
+    linear-gradient(180deg, #2468bb, var(--band));
+}
+
+.appbar-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon {
+  width: 56px;
+  height: 56px;
+  margin: -8px -10px -8px -12px; /* la raquette est étroite : on reprend la marge transparente de l'image */
+  flex: none;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.3));
+}
+
+.appbar h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+.appbar p {
+  margin: 0;
+  font-size: 13px;
+  color: rgb(255 255 255 / 0.8);
+}
+
+/* Bouton Réglages (engrenage), à droite du titre ; zone de toucher de 44 px. */
+.settings-link {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: #fff;
+  background: rgb(255 255 255 / 0.12);
+}
+
+.settings-link svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* --- Formulaire et réglages --- */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px;
+  display: grid;
+  gap: 14px;
+  box-shadow: 0 6px 18px rgb(20 32 46 / 0.08);
+}
+
+.panel-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.field-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+button,
+input,
+a {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--court);
+  outline-offset: 2px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 42px;
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--court);
+  border-color: var(--court);
+  color: var(--on-court);
+  font-weight: 600;
+}
+
+.chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Jours et heures : 7 colonnes, pour tenir sur la largeur d'un iPhone. */
+.days,
+.hours {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.days .chip,
+.hours .chip {
+  min-width: 0;
+  padding: 7px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  background: var(--ground);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.seg button {
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  padding: 7px 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.seg button[aria-pressed="true"] {
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+  color: var(--court);
+  font-weight: 600;
+}
+
+.link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--court);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dates label {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dates input {
+  width: 100%;
+  min-width: 0;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.note,
+.summary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.summary.invalid {
+  color: var(--danger);
+}
+
+.search-btn {
+  border: 0;
+  background: var(--court);
+  color: var(--on-court);
+  border-radius: 12px;
+  padding: 12px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.search-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* --- Résultats --- */
+
+.results {
+  display: grid;
+  gap: 12px;
+  scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 12px);
+}
+
+.status {
+  margin: 0 4px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.status.error {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+#result-list {
+  display: grid;
+  gap: 14px;
+}
+
+.day {
+  display: grid;
+  gap: 4px;
+}
+
+.day h2 {
+  margin: 0 6px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--court);
+}
+
+/* Une ligne par créneau, avec le liseré bleu d'une ligne de terrain (orange : deux réservations). */
+.slot {
+  background: var(--surface);
+  border-radius: 10px;
+  box-shadow: inset 4px 0 0 var(--court);
+  padding: 9px 12px 9px 16px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 15px;
+}
+
+.slot .time {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.slot .where {
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.slot .price {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.slot.combo {
+  box-shadow: inset 4px 0 0 var(--combo);
+}
+
+.slot.combo .where {
+  color: var(--combo);
+}
+
+.warning {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--court-soft);
+  font-size: 13.5px;
+}
+
+.empty {
+  margin: 0;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: center;
+  color: var(--muted);
+}
+
+/* --- Bouton « Réserver », fixé en bas, couleur balle --- */
+
+.book-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, var(--ground) 70%, transparent);
+}
+
+.book {
+  display: block;
+  max-width: 456px;
+  margin-inline: auto;
+  text-align: center;
+  text-decoration: none;
+  background: var(--ball);
+  color: var(--on-ball);
+  border-radius: 12px;
+  padding: 13px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 4px 14px rgb(20 32 46 / 0.18);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chip,
+  .seg button {
+    transition:
+      background-color 0.15s,
+      color 0.15s;
+  }
+}
