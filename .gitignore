@@ -6,3 +6,8 @@ dev-dist
 
 # Notes de travail locales, non publiées
 context.md
+
+# Config Claude : local uniquement
+.claude/
+CLAUDE.md
+CLAUDE.local.md
